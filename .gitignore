@@ -1,0 +1,24 @@
+cat << 'EOF' > .gitignore
+## --- .NET / C# / F# Kuralları ---
+[Bb]in/
+[Oo]bj/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.vs/
+.idea/
+.vscode/
+*.Rider/
+packages/
+TestResults/
+*.trx
+csx/
+publish/
+appsettings.Development.json
+appsettings.Local.json
+*.secrets.json
+.env
+.DS_Store
+Thumbs.db
+EOF
