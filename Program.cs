@@ -1,15 +1,14 @@
-using System.Runtime.CompilerServices;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddDbContext<DbNot>(Options => Options.UseSqlite("Data Source=notlar.db"));
+builder.Services.AddDbContext<DbNot>(Options => Options.UseNpgsql("Host=localhost; Port=5454; Username=QarDin; Password=Deneme123; Database=DenemeDb"));
 var app = builder.Build();
-using (var scope = app.Services.CreateScope())
-{
-    scope.ServiceProvider.GetRequiredService<DbNot>().Database.EnsureCreated();
-}
+// Artik kullanilmiyor cunku docker ile posgtres sql e gectigimiz icin calisma zamaninda hata almamak icin kapattik.
+// using (var scope = app.Services.CreateScope())
+// {
+//     scope.ServiceProvider.GetRequiredService<DbNot>().Database.EnsureCreated();
+// }
 
 app.MapGet("/notlar", (DbNot Dotlar) => Dotlar.notlar.ToList());
 
