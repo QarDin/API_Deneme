@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddDbContext<DbNot>(Options => Options.UseNpgsql("Host=localhost; Port=5454; Username=QarDin; Password=Deneme123; Database=DenemeDb"));
+builder.Services.AddDbContext<DbNot>(Options => Options.UseNpgsql(builder.Configuration.GetConnectionString("Db")));
 var app = builder.Build();
 // Artik kullanilmiyor cunku docker ile posgtres sql e gectigimiz icin calisma zamaninda hata almamak icin kapattik.
 // using (var scope = app.Services.CreateScope())

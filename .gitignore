@@ -1,5 +1,3 @@
-cat << 'EOF' > .gitignore
-## --- .NET / C# / F# Kuralları ---
 [Bb]in/
 [Oo]bj/
 *.suo
@@ -21,4 +19,4 @@ appsettings.Local.json
 .env
 .DS_Store
 Thumbs.db
-EOF
+

@@ -3,7 +3,7 @@ services:
     image: postgres
     environment:
       - POSTGRES_USER=QarDin
-      - POSTGRES_PASSWORD=Deneme123
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=DenemeDb
     ports:
       - "5454:5432"
