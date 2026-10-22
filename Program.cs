@@ -1,3 +1,4 @@
+using ApiOrnek;
 using Microsoft.EntityFrameworkCore;
 
 
@@ -22,7 +23,7 @@ app.MapGet("/notlar/{id}", (DbNot dotlar, int id) =>
 app.MapPost("/notlar", async (YeniNot gelen, DbNot Dotlar) =>
 {
 
-    var not = new Not { Metin = gelen.Metin };
+    var not = new Not { Text = gelen.Metin };
     Dotlar.Add(not);
     Dotlar.SaveChanges();
     return Results.Created($"/notlar/{not.Id}", not);
@@ -35,7 +36,7 @@ app.MapPut("/notlar/{id}", async (YeniNot gelenNot, DbNot Dotlar, int id) =>
     {
         return Results.NotFound();
     }
-    not.Metin = gelenNot.Metin;
+    not.Text = gelenNot.Metin;
     await Dotlar.SaveChangesAsync();
     return Results.Ok(not);
 });
@@ -57,6 +58,9 @@ app.Run();
 public class Not
 {
     public int Id { get; set; }
-    public string Metin { get; set; } = string.Empty;
+    public string Text { get; set; } = string.Empty;
+    public int? BaslikId { get; set; }
+    public Baslik? Baslik { get; set; } = null!;
+
 }
 record YeniNot(string Metin);

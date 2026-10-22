@@ -20,6 +20,23 @@ namespace ApiOrnek.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("ApiOrnek.Baslik", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Basliklar");
+                });
+
             modelBuilder.Entity("Not", b =>
                 {
                     b.Property<int>("Id")
@@ -28,13 +45,32 @@ namespace ApiOrnek.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Metin")
+                    b.Property<int?>("BaslikId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Text")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BaslikId");
+
                     b.ToTable("notlar");
+                });
+
+            modelBuilder.Entity("Not", b =>
+                {
+                    b.HasOne("ApiOrnek.Baslik", "Baslik")
+                        .WithMany("notlar")
+                        .HasForeignKey("BaslikId");
+
+                    b.Navigation("Baslik");
+                });
+
+            modelBuilder.Entity("ApiOrnek.Baslik", b =>
+                {
+                    b.Navigation("notlar");
                 });
 #pragma warning restore 612, 618
         }
