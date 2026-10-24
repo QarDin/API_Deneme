@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddScoped<NotServisi>();
 builder.Services.AddDbContext<DbNot>(Options => Options.UseNpgsql(builder.Configuration.GetConnectionString("Db")));
 var app = builder.Build();
 // Artik kullanilmiyor cunku docker ile posgtres sql e gectigimiz icin calisma zamaninda hata almamak icin kapattik.
@@ -14,9 +15,10 @@ var app = builder.Build();
 
 app.MapGet("/notlar", (DbNot Dotlar) => Dotlar.notlar.ToList());
 
-app.MapGet("/notlar/{id}", (DbNot dotlar, int id) =>
+app.MapGet("/notlar/{id}", (NotServisi NotServis, int id) =>
 {
-    var result = dotlar.notlar.FirstOrDefault(n => n.Id == id);
+    // var result = dotlar.notlar.FirstOrDefault(n => n.Id == id);
+    Not? result = NotServis.Id_Getir(id);
     return result == null ? Results.NotFound() : Results.Ok(result);
 });
 

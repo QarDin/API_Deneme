@@ -50,3 +50,13 @@
 - **Neden oldu:** `Baslik.Notes` notları tutuyor, her `Not.Baslik` de aynı başlığı geri gösteriyor. JSON'a çevirici başlık → not → başlık → not... diye sonsuza iniyor, 64 derinlikte duruyor.
 - **Doğrusu:** `Not.Baslik` alanının üstüne `[JsonIgnore]` (`using System.Text.Json.Serialization;`). Hangi başlık olduğu `baslikId` ile zaten görünüyor. Kalıcı çözüm: cevap için ayrı DTO sınıfı (katmanlama günü). Kod değişince `dotnet run`'ı yeniden başlat.
 - **Ara hata:** `[JsonIgnore]` önce `BaslikId`'nin üstüne kondu. `BaslikId` sadece bir sayı, döngü yaratmaz; döngüyü nesne olan `Baslik` alanı yaratıyor. Üstelik sayı gizlenince notun hangi başlıkta olduğu bilgisi de JSON'dan kaybolur.
+
+## 2026-10-24 — servis bulunamayınca `throw new Exception()` fırlattı
+- **Ne oldu:** `NotServisi.Id_Getir` içinde `if (result == null) throw new Exception();`.
+- **Neden sorun:** Dönüş tipi `Not?` "bulamazsam null" diyor, metot ise patlıyordu. İşlenmemiş exception istemciye 500 (sunucu çöktü) olarak gider; oysa "not yok" normal bir sonuç, 404 olmalı. Eski alışkanlık: "ters giden her şeye throw".
+- **Doğrusu:** Servis `null` döndürür; 404'e endpoint karar verir.
+
+## 2026-10-24 — servisin içinde `Results.*` (CS0029 IResult → Not)
+- **Ne oldu:** `Cannot implicitly convert type 'Microsoft.AspNetCore.Http.IResult' to 'Not'`.
+- **Neden oldu:** HTTP cevabı üreten `Results.NotFound/Ok` servise yazıldı; metot `Not?` döndüreceğine söz vermişti. HTTP cevabı endpoint'in (garsonun) işi, servisin değil. Düzeltirken kalan `if (...) Results.NotFound(...)` satırı da sabahki `return` hatasının aynısıydı: oluşturulan cevap kayboluyor.
+- **Doğrusu:** Servis: bul + `return result;`. `Results.*` sadece endpoint'te.
