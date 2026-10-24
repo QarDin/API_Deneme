@@ -52,6 +52,14 @@ app.MapDelete("/notlar/{id}", (DbNot Dotlar, int id) =>
     Dotlar.SaveChanges();
     return Results.NoContent();
 });
+app.MapPost("/basliklar", async (YeniBaslik Gelen, DbNot veri) =>
+{
+    var newTitle = new Baslik { Title = Gelen.Title };
+    veri.Add(newTitle);
+    await veri.SaveChangesAsync();
+    return Results.Ok(newTitle.Id);
+
+});
 
 app.Run();
 
@@ -64,3 +72,4 @@ public class Not
 
 }
 record YeniNot(string Metin);
+record YeniBaslik(string Title);
