@@ -1,4 +1,5 @@
 using ApiOrnek;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 
@@ -23,7 +24,7 @@ app.MapGet("/notlar/{id}", (DbNot dotlar, int id) =>
 app.MapPost("/notlar", async (YeniNot gelen, DbNot Dotlar) =>
 {
 
-    var not = new Not { Text = gelen.Metin };
+    var not = new Not { Text = gelen.Metin, BaslikId = gelen.BaslikId };
     Dotlar.Add(not);
     Dotlar.SaveChanges();
     return Results.Created($"/notlar/{not.Id}", not);
@@ -61,6 +62,12 @@ app.MapPost("/basliklar", async (YeniBaslik Gelen, DbNot veri) =>
 
 });
 
+app.MapGet("basliklar/{id}", async (DbNot Veri, int id) =>
+{
+    var gelecekDeger = Veri.Basliklar.Include(b => b.Notes).FirstOrDefault(a => a.Id == id);
+    if (gelecekDeger == null) return Results.NotFound(id);
+    return Results.Ok(gelecekDeger);
+});
 app.Run();
 
 public class Not
@@ -68,8 +75,10 @@ public class Not
     public int Id { get; set; }
     public string Text { get; set; } = string.Empty;
     public int? BaslikId { get; set; }
+    [JsonIgnore]
     public Baslik? Baslik { get; set; } = null!;
 
 }
-record YeniNot(string Metin);
+record YeniNot(string Metin, int? BaslikId);
 record YeniBaslik(string Title);
+

@@ -24,3 +24,29 @@
 - **Ne oldu:** Claude, `Gelen.title`'ın `Gelen.Title` olması gerektiğini söyledi; kullanıcı "Title yok, küçük title var" dedi ve haklıydı.
 - **Neden oldu:** Record'u kendim `YeniBaslik(string Title)` diye önermiştim; kullanıcının dosyada `string title` yazdığını kontrol etmeden kendi önerimi doğru kabul ettim.
 - **Doğrusu:** Satırı düzeltmeden önce dosyadaki tanıma bak. Gelenek PascalCase olduğu için record `YeniBaslik(string Title)` yapılır, kullanım `Gelen.Title` olur.
+
+## 2026-10-24 — başlık id'si yanlış alana atandı (CS0266, sonra CS1061)
+- **Ne oldu:** `new Not { ..., Id = gelen.baslikId }` yazılınca `Cannot implicitly convert type 'int?' to 'int'`. Record'daki ad `BaslikId` yapılınca bu kez `'YeniNot' does not contain a definition for 'baslikId'`.
+- **Neden oldu:** Başlık id'si notun kendi `Id`'sine (`int`, veritabanı verir) atandı; `int?` boş olabileceği için `int`'e sığmadı. İkinci hata: record'daki ad değişti ama kullanan satır güncellenmedi, C# büyük-küçük harf ayırır.
+- **Doğrusu:** `new Not { Text = gelen.Metin, BaslikId = gelen.BaslikId }`. Bir adı değiştirince onu kullanan her satırı da değiştir.
+
+## 2026-10-24 — endpoint'te `return` unutuldu (derleme hatası yok)
+- **Ne oldu:** `GET /basliklar/{id}` içinde `Results.NotFound(id);` ve `Results.Ok(gelecekDeger);` `return` olmadan yazıldı; kod derlendi.
+- **Neden oldu:** `Results.Ok(...)` cevabı yalnızca oluşturur; `return` edilmezse istemciye gitmez, kaybolur. Lambda hiçbir şey döndürmediği için derleyici şikâyet etmez — sinsi hata.
+- **Doğrusu:** Her dalda `return Results...`. Bir dalda `return` var, diğerinde yoksa derleyici "not all code paths return a value" der.
+
+## 2026-10-24 — not gövdesi `/basliklar`'a gönderildi (23502 not-null)
+- **Ne oldu:** `curl -X POST .../basliklar -d '{"Metin": ..., "baslikId": 2}'` → `null value in column "Title" of relation "Basliklar" violates not-null constraint`.
+- **Neden oldu:** Not oluşturulacaktı ama istek başlık endpoint'ine gitti. `YeniBaslik` gövdede `Title` aradı, bulamadı → `null`; veritabanında `Title` boş olamaz. Ek ders: API boş/eksik `Title`'ı kontrol etmeden veritabanına kadar götürüyor (doğrulama eksiği).
+- **Doğrusu:** Not için `POST /notlar`. Endpoint'lerde gelen veriyi kaydetmeden önce doğrula (ApiOrnek eksik listesinde).
+
+## 2026-10-24 — var olmayan başlığa not bağlanmaya çalışıldı
+- **Ne oldu:** `POST /notlar` gövdesinde `"baslikId": 2` gönderildi; not oluşmadı. `GET /basliklar/2` → 404.
+- **Neden oldu:** 2 numaralı başlık yok. `BaslikId` yabancı anahtar (foreign key): veritabanı, var olmayan bir başlığa işaret eden notu kabul etmez.
+- **Doğrusu:** Önce başlığı oluştur (`POST /basliklar`), dönen id'yi notta kullan. Komut doğruysa bile hedef verinin var olduğunu kontrol et.
+
+## 2026-10-24 — `Include` sonrası JSON döngüsü (object cycle)
+- **Ne oldu:** `GET /basliklar/1` (Include ile) → `JsonException: A possible object cycle was detected ... Path: $.Notes.Baslik.Notes.Baslik...`
+- **Neden oldu:** `Baslik.Notes` notları tutuyor, her `Not.Baslik` de aynı başlığı geri gösteriyor. JSON'a çevirici başlık → not → başlık → not... diye sonsuza iniyor, 64 derinlikte duruyor.
+- **Doğrusu:** `Not.Baslik` alanının üstüne `[JsonIgnore]` (`using System.Text.Json.Serialization;`). Hangi başlık olduğu `baslikId` ile zaten görünüyor. Kalıcı çözüm: cevap için ayrı DTO sınıfı (katmanlama günü). Kod değişince `dotnet run`'ı yeniden başlat.
+- **Ara hata:** `[JsonIgnore]` önce `BaslikId`'nin üstüne kondu. `BaslikId` sadece bir sayı, döngü yaratmaz; döngüyü nesne olan `Baslik` alanı yaratıyor. Üstelik sayı gizlenince notun hangi başlıkta olduğu bilgisi de JSON'dan kaybolur.
