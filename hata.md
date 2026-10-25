@@ -60,3 +60,8 @@
 - **Ne oldu:** `Cannot implicitly convert type 'Microsoft.AspNetCore.Http.IResult' to 'Not'`.
 - **Neden oldu:** HTTP cevabı üreten `Results.NotFound/Ok` servise yazıldı; metot `Not?` döndüreceğine söz vermişti. HTTP cevabı endpoint'in (garsonun) işi, servisin değil. Düzeltirken kalan `if (...) Results.NotFound(...)` satırı da sabahki `return` hatasının aynısıydı: oluşturulan cevap kayboluyor.
 - **Doğrusu:** Servis: bul + `return result;`. `Results.*` sadece endpoint'te.
+
+## 2026-10-25 — `Results.NotFound(404)`: durum kodu gövdeye yazıldı
+- **Ne oldu:** `curl .../notlar/999` ekrana `404` bastı. Önceki hali (`Results.NotFound()`) boş görününce koda `404` argümanı eklendi.
+- **Neden oldu:** `NotFound(x)` içindeki `x` cevabın **gövdesi**; durum kodunu metodun adı zaten 404 yapıyor. Ekrandaki `404` HTTP durum kodu değil, gövdeye yazılmış bir sayı. Asıl kafa karışıklığı: `curl` varsayılan olarak yalnızca gövdeyi basar, durum kodunu göstermez. Boş ekran "cevap yok" değil, "404 geldi, gövdesi boş" demekti.
+- **Doğrusu:** Durum kodunu görmek için `curl -i`. Gövdeye bir şey koyacaksan istemciye işe yarayan bir mesaj koy, kodun tekrarını değil.

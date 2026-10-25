@@ -19,7 +19,7 @@ app.MapGet("/notlar/{id}", (NotServisi NotServis, int id) =>
 {
     // var result = dotlar.notlar.FirstOrDefault(n => n.Id == id);
     Not? result = NotServis.Id_Getir(id);
-    return result == null ? Results.NotFound() : Results.Ok(result);
+    return result == null ? Results.NotFound($"{id} id yook") : Results.Ok(result);
 });
 
 
