@@ -65,3 +65,29 @@
 - **Ne oldu:** `curl .../notlar/999` ekrana `404` bastı. Önceki hali (`Results.NotFound()`) boş görününce koda `404` argümanı eklendi.
 - **Neden oldu:** `NotFound(x)` içindeki `x` cevabın **gövdesi**; durum kodunu metodun adı zaten 404 yapıyor. Ekrandaki `404` HTTP durum kodu değil, gövdeye yazılmış bir sayı. Asıl kafa karışıklığı: `curl` varsayılan olarak yalnızca gövdeyi basar, durum kodunu göstermez. Boş ekran "cevap yok" değil, "404 geldi, gövdesi boş" demekti.
 - **Doğrusu:** Durum kodunu görmek için `curl -i`. Gövdeye bir şey koyacaksan istemciye işe yarayan bir mesaj koy, kodun tekrarını değil.
+
+## 2026-10-25 — `async Task List<Not>`: iç içe tip yanlış yazıldı (CS0246)
+- **Ne oldu:** `public async Task List<Not> Liste_Getir()` → `The type or namespace name 'Liste_Getir' could not be found`.
+- **Neden oldu:** `Task` ile `List<Not>` arasında `<>` yok. Derleyici `Task`'ı dönüş tipi, `List<Not>`'u metot adı sandı; bu yüzden `Liste_Getir`'i bir tip adı olarak okumaya çalıştı. Hata mesajı asıl yanlışın bir kelime sağını gösteriyor.
+- **Doğrusu:** Fişin içinde liste var: `Task<List<Not>>`. Genel kural: `Task<içinden çıkacak tip>`.
+- **İkinci sorun (aynı metot):** `await _dbNot.notlar.ToList()`: `ToList()` senkron, sonucu zaten hazır bir liste; liste `await` edilemez. `Task.FromResult(...ToList())` ile sarmak da gerçek async değil: aşçı fırının önünde bekler, sonra fiş verir. Doğrusu `ToListAsync()` (`using Microsoft.EntityFrameworkCore;`).
+
+## 2026-10-25 — `await` var, `return` yok (CS0161) + fişi fişe sarmak
+- **Ne oldu:** `await Task.FromResult(_dbNot.notlar.ToListAsync());` → `not all code paths return a value`.
+- **Neden oldu:** `await` yemeği alır ama `return` yazılmadığı için kimseye vermez. Metot `Task<List<Not>>` döndüreceğine söz verdi; söz tutulmadı. Ayrıca `ToListAsync()` zaten fiş (`Task`) veriyor; onu `Task.FromResult` içine koymak fişi bir fişe sarmak oluyor, `await` sonunda liste değil yine fiş çıkar.
+- **Doğrusu:** `return await _dbNot.notlar.ToListAsync();`. `Task.FromResult` gerekmez.
+
+## 2026-10-25 — `YeniNot` public metotta kullanıldı ama kendisi public değil (CS0051)
+- **Ne oldu:** `Inconsistent accessibility: parameter type 'YeniNot' is less accessible than method 'NotServisi.Not_EKle_Async(YeniNot)'`.
+- **Neden oldu:** `Program.cs`'te `record YeniNot(...)` başında erişim belirteci yok; C#'ta yazılmayan tip varsayılan olarak `internal` (sadece bu proje görür). `NotServisi` ve metodu ise `public` (herkes görebilir). Herkese açık bir kapı, herkesin göremediği bir tipi istiyor: çelişki. Bu tip daha önce sadece `Program.cs` içindeki endpoint'lerde kullanıldığı için sorun çıkmamıştı; servise taşınınca ortaya çıktı. `return result;` doğruydu, hata ondan değil.
+- **Doğrusu:** `public record YeniNot(...)` (`Not` gibi). Genel kural: public bir metodun parametre ve dönüş tipleri en az onun kadar açık olmalı.
+
+## 2026-10-26 — `FindAsync` önünde `await` yok: null kontrolü hep false
+- **Ne oldu:** `if (result == null)` → `The result of the expression is always 'false' since a value of type 'ValueTask<Not?>' is never equal to 'null'`.
+- **Neden oldu:** `await` yazılmadığı için `result` notun kendisi değil, fişi (`ValueTask<Not?>`). Fiş her zaman var, asla null değil; içinde not olsa da olmasa da. Bu yüzden kontrol hiçbir zaman tutmaz. Hata mesajı tipi açıkça söylüyor: `Not?` beklenen yerde `ValueTask<Not?>` görünce sebep `await` eksikliği.
+- **Doğrusu:** `var result = await _dbNot.notlar.FindAsync(id);`. Genel kural: adı `...Async` ile biten metodun önüne `await`. Uyarıda `Task`/`ValueTask` tipi görüyorsan ilk bakılacak yer orası.
+
+## 2026-10-26 — TEKRAR: servisin içinde `Results.*` + `if` içinde `return` yok (24 Ekim kaydının aynısı)
+- **Ne oldu:** `Not_Degistir_Async` içinde `if (result == null) Results.NotFound();` ve `return Results.();`.
+- **Neden oldu:** 24 Ekim'deki iki hata birlikte geri geldi. (1) HTTP cevabı servise yazıldı; servis `Not` döndürecek, `IResult` değil. (2) `if` içinde `return` yok: `NotFound()` oluşturulup kayboluyor, kod alt satıra geçip `result.Text`'te null ile patlıyor. Az önce konuşulan "önce kontrol et, yoksa hemen dön" adımı yazıldı ama `return` olmadan.
+- **Doğrusu:** Serviste `if (result == null) return null;` ... `return result;`. 200/404 kararı endpoint'te. Fark etme sorusu: "bu satır HTTP biliyor mu?" Biliyorsa servise ait değil.

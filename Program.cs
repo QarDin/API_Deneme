@@ -13,7 +13,7 @@ var app = builder.Build();
 //     scope.ServiceProvider.GetRequiredService<DbNot>().Database.EnsureCreated();
 // }
 
-app.MapGet("/notlar", (DbNot Dotlar) => Dotlar.notlar.ToList());
+app.MapGet("/notlar", async (NotServisi NotServisi) => await NotServisi.Liste_Getir_Async());
 
 app.MapGet("/notlar/{id}", (NotServisi NotServis, int id) =>
 {
@@ -23,25 +23,19 @@ app.MapGet("/notlar/{id}", (NotServisi NotServis, int id) =>
 });
 
 
-app.MapPost("/notlar", async (YeniNot gelen, DbNot Dotlar) =>
+app.MapPost("/notlar", async (NotServisi notServisi, YeniNot yeniNot) =>
 {
 
-    var not = new Not { Text = gelen.Metin, BaslikId = gelen.BaslikId };
-    Dotlar.Add(not);
-    Dotlar.SaveChanges();
-    return Results.Created($"/notlar/{not.Id}", not);
+    var userNot = await notServisi.Not_EKle_Async(yeniNot);
+    return Results.Created($"/notlar/{userNot.Id}", userNot);
+
 });
 
-app.MapPut("/notlar/{id}", async (YeniNot gelenNot, DbNot Dotlar, int id) =>
+app.MapPut("/notlar/{id}", async (NotServisi notServisi, YeniNot yeniNot, int id) =>
 {
-    var not = Dotlar.notlar.FirstOrDefault(n => n.Id == id);
-    if (not == null)
-    {
-        return Results.NotFound();
-    }
-    not.Text = gelenNot.Metin;
-    await Dotlar.SaveChangesAsync();
-    return Results.Ok(not);
+    var degisenUserNot = await notServisi.Not_Degistir_Async(id, yeniNot);
+    if (degisenUserNot == null) return Results.NotFound($"Oyle bir mesaj yok {404}");
+    return Results.Ok(degisenUserNot);
 });
 
 app.MapDelete("/notlar/{id}", (DbNot Dotlar, int id) =>
@@ -64,7 +58,7 @@ app.MapPost("/basliklar", async (YeniBaslik Gelen, DbNot veri) =>
 
 });
 
-app.MapGet("basliklar/{id}", async (DbNot Veri, int id) =>
+app.MapGet("/basliklar/{id}", async (DbNot Veri, int id) =>
 {
     var gelecekDeger = Veri.Basliklar.Include(b => b.Notes).FirstOrDefault(a => a.Id == id);
     if (gelecekDeger == null) return Results.NotFound(id);
@@ -81,6 +75,6 @@ public class Not
     public Baslik? Baslik { get; set; } = null!;
 
 }
-record YeniNot(string Metin, int? BaslikId);
+public record YeniNot(string Metin, int? BaslikId);
 record YeniBaslik(string Title);
 
